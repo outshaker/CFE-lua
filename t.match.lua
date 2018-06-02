@@ -220,6 +220,5 @@ print("test Sen Zen")
 v={1,2,3}
 vs={{1,2,3},{2,3,4},{3,4,5},{4,5,1},{5,1,2}}
 for i=1,5 do
-	if matchV(v,vs[i]) then print("match",i)
+	if matchV(v,vs[i]) then print("match",i) break end
 end
-
