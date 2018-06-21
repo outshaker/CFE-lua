@@ -2,75 +2,72 @@
 --20180605 matchZen.lua
 --original: onRepl-v170323.lua
 
---ENV
-idList={9,10,11,12,13,17,18,19,20,21,25,26,27,28,29,33,34,35,36,37,41,42,43,44,45}
-ty2s={"G","S","M","H","T"}
-
-sel={
-{1},{2},{3},{4},{5},
-{2, 1},{3, 1},{4, 1},{5, 1},{3, 2},{4, 2},{5, 2},{4, 3},{5, 3},{5, 4},
-{3, 2, 1},{4, 2, 1},{5, 2, 1},{4, 3, 1},{5, 3, 1},{5, 4, 1},{4, 3, 2},{5, 3, 2},{5, 4, 2},{4, 5, 3},
-{4, 3, 2, 1},{5, 3, 2, 1},{5, 4, 2, 1},{4, 5, 3, 1},{3, 4, 5, 2},
-{1, 2, 3, 4, 5}}
-
 -- utility func()
 require "string"
+function str(s,...) return string.format(s,...) end
 function pf(s,...) return io.write(string.format(s,...)) end
-function p(...) return io.write(...) end
-function br() print("") end
-function see(t) -- major use for print stack
-	if type(t)=="table" then
-		for i,v in ipairs(t) do
-			pf("%s ",tostring(v))
+function p(...)
+	local t={...}
+	for i=1,#t do
+		typeName=type(t[i])
+		if typeName=="number" or typeName=="boolean" then t[i]=tostring(t[i])
+		elseif typeName=="string" then
+		else
+			t[i]="("..tostring(t[i])..")"
 		end
-		br()
-	else
-		print(t)
+		io.write(t[i])
 	end
 end
-
-function printArray(t) --printArray in (v v ... v )
+function br() io.write("\n") end
+function tab() io.write("\t") end
+function see(t) -- major use for print stack
 	if type(t)=="table" then
-		pf("(")
+		p("[")
 		for i,v in ipairs(t) do
-			pf("%d ",v)
+			p(v," ")
 		end
-		pf(")")
+		p("]")
+	else
+		p(t)
 	end
 end
 
 -- basic func()
-function getId(ty,lv) return ty*8+lv end
-function getTy(id) return math.floor(id/8) end
-function getLv(id) return id%8 end
+function getCid(ty,lv) return (lv-1)*5+ty end
+function getTy(cid) if cid%5==0 then return 5 else return cid%5 end end
+function getLv(cid) return math.floor((cid-1)/5)+1 end
 
 math.randomseed(os.time())
-function r() return idList[math.random(25)] end
-function s(id) return ty2s[getTy(id)] .. getLv(id) end
+function r() return math.random(25) end
+function s(id)
+	local id2s={"G1","S1","M1","H1","T1","G2","S2","M2","H2","T2","G3","S3","M3","H3","T3","G4","S4","M4","H4","T4","G5","S5","M5","H5","T5"}
+return id2s[id] end
 
 -- build up application
 function draw5()
-    local H={}
-    for i=1,5 do table.insert(H,r()) end
-    return H
+    local h={}
+    for i=1,5 do h[i]=r() end
+    return h
 end
 
-function seeH(H)
-	for i=1,#H do io.write(s(H[i])," ") end
-	br()
+function seeCardList(ls)
+	p("[")
+	for i=1,#ls do p(s(ls[i])," ") end
+	p("]")
 end
+local scl=seeCardList --nickname
 
-function getHandS(H)
+function _getHandS(h)
 	local hs={}
 	hs.tys={0,0,0,0,0}
 	hs.lvs={0,0,0,0,0}
 	hs.c=0 --n of Tys
-	hs.n=#H
+	hs.n=#h
 	hs.v=0 --val of hand
 
-	for i=1,#H do --do all jobs in 1 loop
-		hs.tys[getTy(H[i])]=hs.tys[getTy(H[i])]+1
-		hs.lvs[getLv(H[i])]=hs.lvs[getLv(H[i])]+1
+	for i=1,#h do --do all jobs in 1 loop
+		hs.tys[getTy(h[i])]=hs.tys[getTy(h[i])]+1
+		hs.lvs[getLv(h[i])]=hs.lvs[getLv(h[i])]+1
 	end
 
 	for i=1,5 do
@@ -79,11 +76,6 @@ function getHandS(H)
 	end
 
 	return hs
-end
-
-function _needVal(i)
---~ 	assert(_isBasicZid(i),"zid is invalid basic rule zen id") --test basic rule zen id
-	return (i>=1 and i<=6) or (i>=10 and i<=15) or (i>=17 and i<=19) or (i>=22 and i<=24) --zid:1-6,10-15,17-19,22-24 needVal
 end
 
 function seeHandS(hs)
@@ -117,8 +109,8 @@ function __testVectInclude(v1,v2) --test v1 >= v2
 		return true,d
 end
 
-function matchAllZen(H)
-	local VT={
+function getZhenTable(h) --give hand[], get all possiable zhen
+	local vt={
 	{1,0,0,0,0},{0,1,0,0,0},{0,0,1,0,0},{0,0,0,1,0},{0,0,0,0,1},
 	{2,0,0,0,0},{0,2,0,0,0},{0,0,2,0,0},{0,0,0,2,0},{0,0,0,0,2},
 	{3,0,0,0,0},{0,3,0,0,0},{0,0,3,0,0},{0,0,0,3,0},{0,0,0,0,3},
@@ -132,43 +124,27 @@ function matchAllZen(H)
 	{1,1,0,0,0},{1,0,1,0,0},{1,0,0,1,0},{1,0,0,0,1},{0,1,1,0,0},
 	{0,1,0,1,0},{0,1,0,0,1},{0,0,1,1,0},{0,0,1,0,1},{0,0,0,1,1}}
 
-	local hs=getHandS(H)
+	local hs=_getHandS(h)
 	local z={}
 	for i=1,25 do z[i]=false end
 
 	for i=1,21 do
-		z[i]=__testVectInclude(hs.tys,VT[i])
+		z[i]=__testVectInclude(hs.tys,vt[i])
 	end
 
 	--test: five stream to one
 	for i=1,5 do if hs.lvs[i]==5 then z[22]=true break end end
-
 	--test: sheng-Zhen
 	for i=1,5 do if __testVectInclude(hs.tys,shengVT[i]) then z[23]=true break end end
-
 	--test: ke-Zhen
 	for i=1,5 do if __testVectInclude(hs.tys,keVT[i]) then z[24]=true end end
-
 	--test: kong-cheng
 	for i=1,10 do if __testVectInclude(hs.tys,kongVT[i]) then z[25]=true end end
 
-	return getActionList(z)
+	return z
 end
 
-function seeZ(z)
-	local zByTier={{1,2,3,4,5},{6,7,8,9,10,25},{11,12,13,14,15,23,24},{16,17,18,19,20},{21,22}}
-	local n=0
-	for tier=1,5 do
-		for i=1,#zByTier[tier] do
-			if z[zByTier[tier][i]] then pf("%d ",zByTier[tier][i]) n=n+1 end
-		end
-		pf("^ ")
-	end
-	pf("[%d]",n)
-	br()
-end
-
-function getActionList(z)
+function getActionList(z) --give zhen table, make possiable action list.
 	local ls={}
 	for i=1,25 do
 		if z[i]==true then table.insert(ls,i) end
@@ -176,41 +152,52 @@ function getActionList(z)
 	return ls
 end
 
-function selectH(H,sel) --give select return list from hand.
-	local t={}
-	for _,i in ipairs(sel) do
---~ 		print(i,H[i])
-		if i>0 and H[i] then
-			table.insert(t,H[i])
-		end
+function seeActionList(ls) --pretty print
+	local zhenT={}
+	for i=1,#ls do zhen[ls[i]]=true end
+	local order={1,2,3,4,5,6,7,8,9,10,25,11,12,13,14,15,23,24,16,17,18,19,20,21,22}
+
+	p("n=",n,", ")
+	for i=1,#order do
+		if zhenT[order[i]] then p(order[i]," ") end
+		if i==5 or i==11 or i==18 or i==23 then p("^ ") end
 	end
-	return t
+	br()
 end
 
-function getZid(hs) --use "hs" to get zid. Note: may has two match latter.
-	local zid
-	if (hs.n==1 or hs.n==2 or hs.n==3) and hs.c==1 then --1-15
-		local ty=findTy(hs.tys,hs.n)
-		if ty then zid=(hs.n-1)*5+ty
-		else return nil,"can't find major ty" --error
-		end
-	elseif hs.n==4 then zid=matchFourTierZhen(hs.tys) --16-20
-	elseif hs.n==5 and hs.c==5 then zid=21
-	elseif hs.n==5 and sameLv(hs.lvs,hs.n) then zid=22
-	elseif hs.n==3 and hs.c==3 then zid=shengKeZhen(hs.tys) --23-24
-	elseif hs.n==2 and hs.c==2 then zid=25
-	else zid=nil --error
+function getZid(selc) --use selc[] to get zid. Note: may get two zids latter.
+	local hs=_getHandS(selc)
+	--local zid={}
+	local ty
+	if hs.c==1 then
+		ty=assert(findTy(hs.tys,hs.n),"Where is your ty ??")
 	end
-	if zid then return zid
-	else return nil,"can't match"
-	end
-end
 
-function seePlay(p) --show sel[],zid
-	assert(p.z,"zid is nil")
-	pf("[")
-	for i=1,#p[1] do pf(s(p[1][i]).." ") end --selectCard
-	pf("]:"..p.z.."\n")
+	if hs.n==1 then return ty -- 1-5
+	elseif hs.n==2 then
+		if hs.c==1 then return 5+ty -- 6-10
+		elseif hs.c==2 then return 25--25
+		end
+	elseif hs.n==3 then
+		if hs.c==1 then return 10+ty -- 11-15
+		elseif hs.c==3 then
+			local z=assert(shengKeZhen(hs.tys),"BOOM! not sheng-zhen, ke-zhen")
+			return z -- 23-24
+		else return nil
+		end
+	elseif hs.n==4 then
+		local z=matchFourTierZhen(hs.tys)
+		if z then return z -- 16-20
+		else return nil
+		end
+	elseif hs.n==5 then
+		local z21,z22= hs.c==5,sameLv(hs.lvs,hs.n)
+		if z21 and z22 then return 21,22 --both
+		elseif z21 then return 21 --one
+		elseif z22 then return 22 --one
+		else return nil
+		end
+	end
 end
 
 function findTy(tys,n) --find major ty and match n
@@ -236,6 +223,7 @@ function shengKeZhen(tys) --check sheng-zhen or ke-zhen
 	else return nil --error
 	end
 end
+
 function matchV(u,v) --check vect is same
 	if type(u)=="table" and type(v)=="table" then
 		for i=1,5 do
@@ -244,6 +232,7 @@ function matchV(u,v) --check vect is same
 		return true
 	end
 end
+
 function matchFourTierZhen(tys) --match all four card zhen
 	local vect={{2,1,0,1,0},{0,2,1,0,1},{1,0,2,1,0},{0,1,0,2,1},{1,0,1,0,2}} --zid:16-20
 	for i=1,#vect do
@@ -253,8 +242,9 @@ function matchFourTierZhen(tys) --match all four card zhen
 	return nil --error
 end
 
-function match(play) --{{...},z=zid}
-	local VT={
+--play: {...},z=zid
+function match(play) --check play object is valid.
+	local vt={
 	{1,0,0,0,0},{0,1,0,0,0},{0,0,1,0,0},{0,0,0,1,0},{0,0,0,0,1}, --1~5
 	{2,0,0,0,0},{0,2,0,0,0},{0,0,2,0,0},{0,0,0,2,0},{0,0,0,0,2}, --6~10
 	{3,0,0,0,0},{0,3,0,0,0},{0,0,3,0,0},{0,0,0,3,0},{0,0,0,0,3}, --11~15
@@ -262,10 +252,10 @@ function match(play) --{{...},z=zid}
 	{1,1,1,1,1} --21
 	}
 	assert(type(play[1])=="table","play[] is "..type(play[1]))
-	local hs=getHandS(play[1])
+	local hs=_getHandS(play[1])
 	local z=play.z
 
-	if z>=1 and z<=21 then return matchV(VT[z],hs.tys)
+	if z>=1 and z<=21 then return matchV(vt[z],hs.tys)
 	elseif z==22 then return sameLv(hs.lvs,hs.n)
 	elseif z==23 or z==24 then return hs.n==3 and hs.c==3 and shengKeZhen(hs.tys)==z
 	elseif z==25 then return hs.n==2 and hs.c==2
@@ -273,42 +263,127 @@ function match(play) --{{...},z=zid}
 	end
 end
 
-	-- if hs.n==1 then hs.v=hs.v+4
-	-- elseif hs.n==2 then hs.v=hs.v*2
-	-- elseif hs.n==3 then hs.v=hs.v*3
-	-- elseif hs.n==4 then hs.v=hs.v*4
-	-- end
+function seePlay(play) --show sel[],zid
+	assert(play.z,"zid is nil")
+	p("[")
+	for i=1,#play[1] do p(s(play[1][i])," ") end --selectCard
+	p("]:",play.z)
+end
+
+function getSelcByI(h,sel) --give sel[]:<i[]> return selc[] from hand.
+	assert(type(h)=="table" and type(sel)=="table","arg needs table")
+	local selc={}
+	for x=1,#sel do
+		local i=sel[x]
+		--print(sel[x],h[i])
+		if h[i] then table.insert(selc,h[i]) end
+	end
+	return selc
+end
+
+function getSelcByB(h,sel) --give sel[]:<bool[5]> return selc[] from hand.
+	assert(type(h)=="table" and type(sel)=="table","arg needs table")
+	local selc={}
+	for i=1,5 do
+		--print(i,sel[i])
+		if sel[i] and h[i] then table.insert(selc,h[i]) end --add h[i] to selectCard
+	end
+	return selc
+end
+
+function getSelc(h,sel) --package
+	if type(sel[1])=="number" then return getSelcByI(h,sel)
+	else return getSelcByB(h,sel)
+	end
+end
+
+function getSel(l) --get line, return sel[]:<bool[5]>
+	local keymap={z=1,x=2,c=3,v=4,b=5}
+	local sel={false,false,false,false,false}
+	local t={}
+
+	if not l then return sel end
+
+	l=string.lower(l)
+	for i=1,string.len(l) do
+		local c=string.sub(l,i,i)
+		--print(c,keymap[c])
+		if keymap[c] then
+			--pf("find %s, is %d\n",c,keymap[c])
+			sel[keymap[c]]=true
+		end
+	end
+	return sel
+end
+
+function seeSel(sel) --only for sel[]:<bool[5]>
+	pf("[")
+	for i=1,5 do
+		if sel[i] then pf("%d ",i) end
+	end
+	pf("]")
+end
+
+function seperate(h,sel)
+	local selc,h2={},{}
+	for i=1,#h do
+		if sel[i] then
+			table.insert(selc,h[i])
+		else
+			table.insert(h2,h[i])
+		end
+	end
+	return selc,h2
+end
+local sprt=seperate --nickname
+
+--ENV
+sel_ids={
+{1},{2},{3},{4},{5},
+{2, 1},{3, 1},{4, 1},{5, 1},{3, 2},{4, 2},{5, 2},{4, 3},{5, 3},{5, 4},
+{3, 2, 1},{4, 2, 1},{5, 2, 1},{4, 3, 1},{5, 3, 1},{5, 4, 1},{4, 3, 2},{5, 3, 2},{5, 4, 2},{4, 5, 3},
+{4, 3, 2, 1},{5, 3, 2, 1},{5, 4, 2, 1},{4, 5, 3, 1},{3, 4, 5, 2},
+{1, 2, 3, 4, 5}}
 
 -- main loop
 --======================================================================================
-H=draw5()
-see(H)
-seeH(H)
+print("test ")
 
-print("test matchAllZen()")
-see(matchAllZen(H))
+h=draw5()
+see(h)
+scl(h)
 
-print("test all selects in select card")
-local selectCard={}
+-- test getZhenTable()
+print("test getZhenTable()")
+see(getZhenTable(h)) br()
+
+print("test all selects in select card, and make play")
+local selc={}
 local play={}
-for i=1,#sel do
-	selectCard[i]=selectH(H,sel[i]) --sel[] -> selectCard[]
-	seeH(selectCard[i])
-	local hs,z
-	hs=getHandS(selectCard[i]) --selectCard[] -> hs[]
-	seeHandS(hs)
-	z=getZid(hs)
-	p("z="..tostring(z).."\n")
-	if z then table.insert(play,{selectCard[i],z=z}) end -- {selectCard[],z} -> play[]
+for i=1,#sel_ids do
+	selc[i]=getSelcByI(h,sel_ids[i]) --sel[] -> selc[]
+	scl(selc[i]) p(" ")
+	local hs=_getHandS(selc[i]) --selc[] -> hs[]
+	seeHandS(hs) p(" ")
+	local z,Z22=getZid(selc[i])
+
+	if z then
+		p("z=",z)
+		if Z22 then p(",",Z22) end
+		br()
+		table.insert(play,{selc[i],z=z}) -- {selc[],z} -> play
+	else -- do nothing
+	end
 end
 
+-- test match(play)
 print("test match(play)")
-print("play[]",#play)
+pf("play[%d]\n",#play)
 for i=1,#play do
-	seePlay(play[i])
+	seePlay(play[i]) p("\t")
 	if match(play[i]) then
-		pf("pass\n")
-	else pf("NO PASS!\n")
+		p("pass\n")
+	else p("NO PASS!\n")
 	end
 end
 
