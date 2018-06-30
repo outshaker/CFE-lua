@@ -324,18 +324,34 @@ function seeSel(sel) --only for sel[]:<bool[5]>
 	pf("]")
 end
 
-function seperate(h,sel)
+function selectCard(h,sel)
+	assert(#h == #sel,"size no match")
 	local selc,h2={},{}
-	for i=1,#h do
-		if sel[i] then
-			table.insert(selc,h[i])
-		else
-			table.insert(h2,h[i])
+	for i=1,#sel do
+		if sel[i] then table.insert(selc,h[i])
+		else table.insert(h2,h[i])
 		end
 	end
 	return selc,h2
 end
-local sprt=seperate --nickname
+
+function chooseDiscard(d,i)
+	assert(type(i)=="number" and i<=#d and i>=1,"i is invalid")
+	local disc,d2=0,{}
+	for x=1,#d do
+		if x~=i then table.insert(d2,d[x])
+		else disc=d[x]
+		end
+	end
+	return disc,d2
+end
+
+function addToHand(h,d)
+	local h2={}
+	for i=1,#h do table.insert(h2,h[i]) end
+	for i=1,#d do table.insert(h2,d[i]) end
+	return h2
+end
 
 --ENV
 sel_ids={
